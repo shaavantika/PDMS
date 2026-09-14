@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { to: '/approvals', label: 'Approvals', icon: '📝', roles: ['admin', 'pm'] },
   { to: '/reports', label: 'Reports', icon: '📊' },
   { to: '/users', label: 'Users', icon: '👥', roles: ['admin'] },
-  { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export function AppLayout() {

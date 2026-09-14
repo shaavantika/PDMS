@@ -3,8 +3,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Milestone, MilestoneStatus
-from app.auth.decorators import login_required, check_project_access, get_project_or_404
+from app.models import Milestone, MilestoneStatus, ResourcePage
+from app.auth.decorators import login_required, check_project_access, get_project_or_404, require_page_access
 from app.utils.errors import ApiError
 
 milestones_bp = Blueprint("milestones", __name__)
@@ -30,6 +30,7 @@ def parse_due_date(value):
 @login_required
 def list_milestones(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=False)
     check_project_access(project, g.current_user)
     return jsonify([m.to_dict() for m in project.milestones])
 
@@ -38,6 +39,7 @@ def list_milestones(project_id):
 @login_required
 def create_milestone(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=True)
     check_project_access(project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -60,6 +62,7 @@ def create_milestone(project_id):
 @login_required
 def get_milestone(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=False)
     check_project_access(milestone.project, g.current_user)
     return jsonify(milestone.to_dict())
 
@@ -68,6 +71,7 @@ def get_milestone(milestone_id):
 @login_required
 def update_milestone(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=True)
     check_project_access(milestone.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -85,6 +89,7 @@ def update_milestone(milestone_id):
 @login_required
 def delete_milestone(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=True)
     check_project_access(milestone.project, g.current_user, write=True)
     db.session.delete(milestone)
     db.session.commit()
@@ -95,6 +100,7 @@ def delete_milestone(milestone_id):
 @login_required
 def override_milestone_status(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.MILESTONES, write=True)
     check_project_access(milestone.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}

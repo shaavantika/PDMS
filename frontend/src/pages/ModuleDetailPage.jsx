@@ -6,7 +6,7 @@ import { listRequirements, createRequirement } from '../api/requirements'
 import { DataTable } from '../components/DataTable'
 import { StatusBadge } from '../components/StatusBadge'
 import { Modal } from '../components/Modal'
-import { RequireRole } from '../auth/ProtectedRoute'
+import { useHasPageAccess } from '../auth/useHasPageAccess'
 import { apiErrorMessage } from '../api/client'
 
 export function ModuleDetailPage() {
@@ -24,6 +24,7 @@ export function ModuleDetailPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ title: '', description: '', priority: 'medium' })
   const [error, setError] = useState('')
+  const canWrite = useHasPageAccess('requirements', true)
 
   const createMutation = useMutation({
     mutationFn: (data) => createRequirement(mId, data),
@@ -69,11 +70,11 @@ export function ModuleDetailPage() {
           <div className="page-title">{module?.name}</div>
           <div className="page-subtitle">{module?.description}</div>
         </div>
-        <RequireRole roles={['admin', 'pm']}>
+        {canWrite && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Add Requirement
           </button>
-        </RequireRole>
+        )}
       </div>
 
       {isLoading ? <div>Loading...</div> : <DataTable columns={columns} rows={requirements} emptyMessage="No requirements yet." />}

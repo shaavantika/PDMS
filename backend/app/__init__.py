@@ -23,6 +23,7 @@ def create_app(config_class=Config):
     from app.blueprints.tasks import tasks_bp
     from app.blueprints.milestones import milestones_bp
     from app.blueprints.deliveries import deliveries_bp
+    from app.blueprints.groups import groups_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -32,6 +33,7 @@ def create_app(config_class=Config):
     app.register_blueprint(tasks_bp, url_prefix="/api")
     app.register_blueprint(milestones_bp, url_prefix="/api")
     app.register_blueprint(deliveries_bp, url_prefix="/api")
+    app.register_blueprint(groups_bp, url_prefix="/api/groups")
 
     register_error_handlers(app)
 

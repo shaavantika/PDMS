@@ -12,8 +12,7 @@ import { RequirementDetailPage } from './pages/RequirementDetailPage'
 import { TasksPage } from './pages/TasksPage'
 import { ApprovalsPage } from './pages/ApprovalsPage'
 import { ReportsPage } from './pages/ReportsPage'
-import { SettingsPage } from './pages/SettingsPage'
-import { UserManagementPage } from './pages/admin/UserManagementPage'
+import { UsersAndGroupsPage } from './pages/admin/UsersAndGroupsPage'
 
 function LoginRoute() {
   const { user } = useAuth()
@@ -38,12 +37,11 @@ export default function App() {
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
               <Route
                 path="/users"
                 element={
                   <RequireRole roles={['admin']}>
-                    <UserManagementPage />
+                    <UsersAndGroupsPage />
                   </RequireRole>
                 }
               />

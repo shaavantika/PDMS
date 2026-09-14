@@ -3,8 +3,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Delivery, DeliveryStatus, Milestone
-from app.auth.decorators import login_required, check_project_access, get_project_or_404
+from app.models import Delivery, DeliveryStatus, Milestone, ResourcePage
+from app.auth.decorators import login_required, check_project_access, get_project_or_404, require_page_access
 from app.blueprints.milestones import get_milestone_or_404
 from app.utils.errors import ApiError
 
@@ -22,6 +22,7 @@ def get_delivery_or_404(delivery_id):
 @login_required
 def list_project_deliveries(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=False)
     check_project_access(project, g.current_user)
     return jsonify([d.to_dict() for d in project.deliveries])
 
@@ -30,6 +31,7 @@ def list_project_deliveries(project_id):
 @login_required
 def create_project_delivery(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=True)
     check_project_access(project, g.current_user, write=True)
     return _create_delivery(project_id=project.id, milestone_id=None)
 
@@ -38,6 +40,7 @@ def create_project_delivery(project_id):
 @login_required
 def list_milestone_deliveries(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=False)
     check_project_access(milestone.project, g.current_user)
     return jsonify([d.to_dict() for d in milestone.deliveries])
 
@@ -46,6 +49,7 @@ def list_milestone_deliveries(milestone_id):
 @login_required
 def create_milestone_delivery(milestone_id):
     milestone = get_milestone_or_404(milestone_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=True)
     check_project_access(milestone.project, g.current_user, write=True)
     return _create_delivery(project_id=milestone.project_id, milestone_id=milestone.id)
 
@@ -73,6 +77,7 @@ def _create_delivery(project_id, milestone_id):
 @login_required
 def get_delivery(delivery_id):
     delivery = get_delivery_or_404(delivery_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=False)
     check_project_access(delivery.project, g.current_user)
     return jsonify(delivery.to_dict())
 
@@ -81,6 +86,7 @@ def get_delivery(delivery_id):
 @login_required
 def update_delivery(delivery_id):
     delivery = get_delivery_or_404(delivery_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=True)
     check_project_access(delivery.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -98,6 +104,7 @@ def update_delivery(delivery_id):
 @login_required
 def update_delivery_status(delivery_id):
     delivery = get_delivery_or_404(delivery_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=True)
     check_project_access(delivery.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -121,6 +128,7 @@ def update_delivery_status(delivery_id):
 @login_required
 def delete_delivery(delivery_id):
     delivery = get_delivery_or_404(delivery_id)
+    require_page_access(g.current_user, ResourcePage.DELIVERIES, write=True)
     check_project_access(delivery.project, g.current_user, write=True)
     db.session.delete(delivery)
     db.session.commit()

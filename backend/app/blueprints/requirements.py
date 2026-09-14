@@ -3,8 +3,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Requirement, RequirementStatus, RequirementPriority, Stakeholder, UserRole
-from app.auth.decorators import login_required, check_project_access, get_project_or_404
+from app.models import Requirement, RequirementStatus, RequirementPriority, Stakeholder, ResourcePage
+from app.auth.decorators import login_required, check_project_access, get_project_or_404, require_page_access
 from app.blueprints.modules import get_module_or_404
 from app.utils.errors import ApiError
 
@@ -22,6 +22,7 @@ def get_requirement_or_404(requirement_id):
 @login_required
 def list_requirements(module_id):
     module = get_module_or_404(module_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=False)
     check_project_access(module.project, g.current_user)
     return jsonify([r.to_dict() for r in module.requirements])
 
@@ -30,6 +31,7 @@ def list_requirements(module_id):
 @login_required
 def create_requirement(module_id):
     module = get_module_or_404(module_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=True)
     check_project_access(module.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -66,6 +68,7 @@ def create_requirement(module_id):
 @login_required
 def get_requirement(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=False)
     check_project_access(requirement.project, g.current_user)
     return jsonify(requirement.to_dict())
 
@@ -74,6 +77,7 @@ def get_requirement(requirement_id):
 @login_required
 def update_requirement(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=True)
     check_project_access(requirement.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -98,6 +102,7 @@ def update_requirement(requirement_id):
 @login_required
 def delete_requirement(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=True)
     check_project_access(requirement.project, g.current_user, write=True)
     db.session.delete(requirement)
     db.session.commit()
@@ -108,8 +113,7 @@ def delete_requirement(requirement_id):
 @login_required
 def approve_requirement(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
-    if g.current_user.role not in (UserRole.ADMIN, UserRole.PM):
-        raise ApiError("Forbidden", 403)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=True)
     check_project_access(requirement.project, g.current_user, write=True)
 
     requirement.status = RequirementStatus.APPROVED
@@ -123,8 +127,7 @@ def approve_requirement(requirement_id):
 @login_required
 def reject_requirement(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
-    if g.current_user.role not in (UserRole.ADMIN, UserRole.PM):
-        raise ApiError("Forbidden", 403)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=True)
     check_project_access(requirement.project, g.current_user, write=True)
 
     requirement.status = RequirementStatus.REJECTED
@@ -138,6 +141,7 @@ def reject_requirement(requirement_id):
 @login_required
 def pending_requirements(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.REQUIREMENTS, write=False)
     check_project_access(project, g.current_user)
 
     pending = [r for r in project.requirements if r.status == RequirementStatus.PENDING_APPROVAL]

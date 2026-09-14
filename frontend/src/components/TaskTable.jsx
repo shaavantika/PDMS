@@ -4,12 +4,14 @@ import { DataTable } from './DataTable'
 import { StatusBadge } from './StatusBadge'
 import { Avatar } from './Avatar'
 import { useAuth } from '../auth/AuthContext'
+import { useHasPageAccess } from '../auth/useHasPageAccess'
 import { updateTaskStatus } from '../api/tasks'
 
 const STATUS_OPTIONS = ['todo', 'in_progress', 'blocked', 'done']
 
 export function TaskTable({ tasks, queryKeyToInvalidate, emptyMessage }) {
   const { user } = useAuth()
+  const canWriteTasks = useHasPageAccess('tasks', true)
   const queryClient = useQueryClient()
   const [savingId, setSavingId] = useState(null)
 
@@ -23,8 +25,8 @@ export function TaskTable({ tasks, queryKeyToInvalidate, emptyMessage }) {
   })
 
   function canEdit(task) {
-    if (user.role === 'admin' || user.role === 'pm') return true
-    return task.assignee?.id === user.id
+    if (task.assignee?.id === user.id) return true
+    return canWriteTasks
   }
 
   const columns = [

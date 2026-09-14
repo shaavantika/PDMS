@@ -3,8 +3,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Task, TaskStatus, User, UserRole, Milestone
-from app.auth.decorators import login_required, check_project_access, get_project_or_404
+from app.models import Task, TaskStatus, User, UserRole, Milestone, ResourcePage
+from app.auth.decorators import login_required, check_project_access, get_project_or_404, require_page_access
 from app.blueprints.requirements import get_requirement_or_404
 from app.utils.errors import ApiError
 
@@ -31,6 +31,7 @@ def parse_due_date(value):
 @login_required
 def list_requirement_tasks(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=False)
     check_project_access(requirement.project, g.current_user)
     return jsonify([t.to_dict() for t in requirement.tasks])
 
@@ -39,6 +40,7 @@ def list_requirement_tasks(requirement_id):
 @login_required
 def create_requirement_task(requirement_id):
     requirement = get_requirement_or_404(requirement_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=True)
     check_project_access(requirement.project, g.current_user, write=True)
     return _create_task(project_id=requirement.project_id, requirement_id=requirement.id)
 
@@ -47,6 +49,7 @@ def create_requirement_task(requirement_id):
 @login_required
 def list_project_tasks(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=False)
     check_project_access(project, g.current_user)
     return jsonify([t.to_dict() for t in project.tasks])
 
@@ -55,6 +58,7 @@ def list_project_tasks(project_id):
 @login_required
 def create_project_task(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=True)
     check_project_access(project, g.current_user, write=True)
     return _create_task(project_id=project.id, requirement_id=None)
 
@@ -93,6 +97,7 @@ def _create_task(project_id, requirement_id):
 @login_required
 def list_my_tasks():
     user = g.current_user
+    require_page_access(user, ResourcePage.TASKS, write=False)
     tasks = Task.query.order_by(Task.created_at.desc()).all()
     tasks = [t for t in tasks if _has_read_access(t.project, user)]
     if request.args.get("assignee") == "me":
@@ -112,6 +117,7 @@ def _has_read_access(project, user):
 @login_required
 def get_task(task_id):
     task = get_task_or_404(task_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=False)
     check_project_access(task.project, g.current_user)
     return jsonify(task.to_dict())
 
@@ -120,6 +126,7 @@ def get_task(task_id):
 @login_required
 def update_task(task_id):
     task = get_task_or_404(task_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=True)
     check_project_access(task.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -142,6 +149,7 @@ def update_task(task_id):
 @login_required
 def delete_task(task_id):
     task = get_task_or_404(task_id)
+    require_page_access(g.current_user, ResourcePage.TASKS, write=True)
     check_project_access(task.project, g.current_user, write=True)
     db.session.delete(task)
     db.session.commit()
@@ -154,10 +162,10 @@ def update_task_status(task_id):
     task = get_task_or_404(task_id)
     user = g.current_user
 
-    if user.role == UserRole.MEMBER:
-        if task.assignee_id != user.id:
-            raise ApiError("Forbidden", 403)
+    if task.assignee_id == user.id:
+        pass
     else:
+        require_page_access(user, ResourcePage.TASKS, write=True)
         check_project_access(task.project, user, write=True)
 
     data = request.get_json(silent=True) or {}

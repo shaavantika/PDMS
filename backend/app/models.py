@@ -52,11 +52,57 @@ class DeliveryStatus(str, enum.Enum):
     REJECTED = "rejected"
 
 
+class ResourcePage(str, enum.Enum):
+    PROJECTS = "projects"
+    MODULES = "modules"
+    REQUIREMENTS = "requirements"
+    TASKS = "tasks"
+    MILESTONES = "milestones"
+    DELIVERIES = "deliveries"
+
+
 project_members = db.Table(
     "project_members",
     db.Column("project_id", db.Integer, db.ForeignKey("projects.id"), primary_key=True),
     db.Column("user_id", db.Integer, db.ForeignKey("users.id"), primary_key=True),
 )
+
+
+class UserGroup(db.Model):
+    __tablename__ = "groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    permissions = db.relationship("GroupPermission", back_populates="group", cascade="all, delete-orphan")
+    users = db.relationship("User", back_populates="group")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "created_at": self.created_at.isoformat(),
+            "permissions": [p.to_dict() for p in self.permissions],
+        }
+
+
+class GroupPermission(db.Model):
+    __tablename__ = "group_permissions"
+    __table_args__ = (db.UniqueConstraint("group_id", "page", name="uq_group_permissions_group_page"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("groups.id"), nullable=False)
+    page = db.Column(db.Enum(ResourcePage, schema="pdms"), nullable=False)
+    can_read = db.Column(db.Boolean, nullable=False, default=False)
+    can_write = db.Column(db.Boolean, nullable=False, default=False)
+
+    group = db.relationship("UserGroup", back_populates="permissions")
+
+    def to_dict(self):
+        return {"page": self.page.value, "can_read": self.can_read, "can_write": self.can_write}
 
 
 class User(db.Model):
@@ -69,10 +115,22 @@ class User(db.Model):
     role = db.Column(db.Enum(UserRole, schema="pdms"), nullable=False, default=UserRole.MEMBER)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     is_approved = db.Column(db.Boolean, nullable=False, default=False)
+    group_id = db.Column(db.Integer, db.ForeignKey("groups.id"), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     projects_owned = db.relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")
     projects_member_of = db.relationship("Project", secondary=project_members, back_populates="members")
+    group = db.relationship("UserGroup", back_populates="users")
+
+    def resolved_permissions(self):
+        pages = [p.value for p in ResourcePage]
+        if self.role == UserRole.ADMIN:
+            return {p: {"can_read": True, "can_write": True} for p in pages}
+        perms = {p: {"can_read": False, "can_write": False} for p in pages}
+        if self.group_id and self.group:
+            for gp in self.group.permissions:
+                perms[gp.page.value] = {"can_read": gp.can_read, "can_write": gp.can_write}
+        return perms
 
     def to_dict(self):
         return {
@@ -82,6 +140,9 @@ class User(db.Model):
             "role": self.role.value,
             "is_active": self.is_active,
             "is_approved": self.is_approved,
+            "group_id": self.group_id,
+            "group_name": self.group.name if self.group else None,
+            "permissions": self.resolved_permissions(),
             "created_at": self.created_at.isoformat(),
         }
 

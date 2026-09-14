@@ -7,8 +7,8 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      '/api': 'http://localhost:5050',
-      '/auth': 'http://localhost:5050',
+      '/api': 'http://192.168.1.37:5051',
+      '/auth': 'http://192.168.1.37:5051',
     },
   },
 })

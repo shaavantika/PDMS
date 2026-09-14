@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Module, UserRole
-from app.auth.decorators import login_required, check_project_access, get_project_or_404
+from app.models import Module, UserRole, ResourcePage
+from app.auth.decorators import login_required, check_project_access, get_project_or_404, require_page_access
 from app.utils.errors import ApiError
 
 modules_bp = Blueprint("modules", __name__)
@@ -19,6 +19,7 @@ def get_module_or_404(module_id):
 @login_required
 def list_modules(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.MODULES, write=False)
     check_project_access(project, g.current_user)
     return jsonify([m.to_dict(include_counts=True) for m in project.modules])
 
@@ -27,6 +28,7 @@ def list_modules(project_id):
 @login_required
 def create_module(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.MODULES, write=True)
     check_project_access(project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -44,6 +46,7 @@ def create_module(project_id):
 @login_required
 def get_module(module_id):
     module = get_module_or_404(module_id)
+    require_page_access(g.current_user, ResourcePage.MODULES, write=False)
     check_project_access(module.project, g.current_user)
     return jsonify(module.to_dict(include_counts=True))
 
@@ -52,6 +55,7 @@ def get_module(module_id):
 @login_required
 def update_module(module_id):
     module = get_module_or_404(module_id)
+    require_page_access(g.current_user, ResourcePage.MODULES, write=True)
     check_project_access(module.project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -67,6 +71,7 @@ def update_module(module_id):
 @login_required
 def delete_module(module_id):
     module = get_module_or_404(module_id)
+    require_page_access(g.current_user, ResourcePage.MODULES, write=True)
     check_project_access(module.project, g.current_user, write=True)
     db.session.delete(module)
     db.session.commit()

@@ -6,13 +6,14 @@ import { DataTable } from '../components/DataTable'
 import { StatusBadge } from '../components/StatusBadge'
 import { Avatar } from '../components/Avatar'
 import { Modal } from '../components/Modal'
-import { RequireRole } from '../auth/ProtectedRoute'
+import { useHasPageAccess } from '../auth/useHasPageAccess'
 import { apiErrorMessage } from '../api/client'
 
 export function ProjectListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: projects = [], isLoading } = useQuery({ queryKey: ['projects'], queryFn: listProjects })
+  const canWrite = useHasPageAccess('projects', true)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ name: '', client_name: '', description: '' })
   const [error, setError] = useState('')
@@ -60,11 +61,11 @@ export function ProjectListPage() {
           <div className="page-title">Projects</div>
           <div className="page-subtitle">Every project you own or are part of.</div>
         </div>
-        <RequireRole roles={['admin', 'pm']}>
+        {canWrite && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Create Project
           </button>
-        </RequireRole>
+        )}
       </div>
 
       {isLoading ? <div>Loading...</div> : <DataTable columns={columns} rows={projects} emptyMessage="No projects yet." />}

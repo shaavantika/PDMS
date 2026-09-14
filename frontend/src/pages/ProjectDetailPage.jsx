@@ -13,8 +13,7 @@ import { DataTable } from '../components/DataTable'
 import { ModuleCard } from '../components/ModuleCard'
 import { TaskTable } from '../components/TaskTable'
 import { Modal } from '../components/Modal'
-import { RequireRole } from '../auth/ProtectedRoute'
-import { useAuth } from '../auth/AuthContext'
+import { useHasPageAccess } from '../auth/useHasPageAccess'
 import { apiErrorMessage } from '../api/client'
 
 const TABS = ['Overview', 'Modules', 'Tasks', 'Milestones', 'Deliveries', 'Reports']
@@ -144,6 +143,7 @@ function ModulesTab({ projectId }) {
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ name: '', description: '' })
   const [error, setError] = useState('')
+  const canWrite = useHasPageAccess('modules', true)
 
   const createMutation = useMutation({
     mutationFn: (data) => createModule(projectId, data),
@@ -158,11 +158,11 @@ function ModulesTab({ projectId }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <RequireRole roles={['admin', 'pm']}>
+        {canWrite && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Add Module
           </button>
-        </RequireRole>
+        )}
       </div>
       {isLoading ? (
         <div>Loading...</div>
@@ -224,6 +224,7 @@ function MilestonesTab({ projectId }) {
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ name: '', due_date: '', description: '' })
   const [error, setError] = useState('')
+  const canWrite = useHasPageAccess('milestones', true)
 
   const createMutation = useMutation({
     mutationFn: (data) => createMilestone(projectId, data),
@@ -245,11 +246,11 @@ function MilestonesTab({ projectId }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <RequireRole roles={['admin', 'pm']}>
+        {canWrite && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Add Milestone
           </button>
-        </RequireRole>
+        )}
       </div>
       {isLoading ? <div>Loading...</div> : <DataTable columns={columns} rows={milestones} emptyMessage="No milestones yet." />}
 
@@ -291,7 +292,6 @@ function MilestonesTab({ projectId }) {
 }
 
 function DeliveriesTab({ projectId }) {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
   const { data: deliveries = [], isLoading } = useQuery({ queryKey: ['deliveries', projectId], queryFn: () => listProjectDeliveries(projectId) })
   const { data: milestones = [] } = useQuery({ queryKey: ['milestones', projectId], queryFn: () => listMilestones(projectId) })
@@ -317,7 +317,7 @@ function DeliveriesTab({ projectId }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deliveries', projectId] }),
   })
 
-  const canWrite = user.role === 'admin' || user.role === 'pm'
+  const canWrite = useHasPageAccess('deliveries', true)
 
   const NEXT_STATUS = { pending: 'delivered', delivered: 'accepted' }
 
@@ -341,11 +341,11 @@ function DeliveriesTab({ projectId }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <RequireRole roles={['admin', 'pm']}>
+        {canWrite && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Add Delivery
           </button>
-        </RequireRole>
+        )}
       </div>
       {isLoading ? <div>Loading...</div> : <DataTable columns={columns} rows={deliveries} emptyMessage="No deliveries yet." />}
 

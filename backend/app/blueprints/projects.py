@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, g
 
 from app.extensions import db
-from app.models import Project, ProjectStatus, User, UserRole
-from app.auth.decorators import login_required, role_required, check_project_access, get_project_or_404
+from app.models import Project, ProjectStatus, User, UserRole, ResourcePage
+from app.auth.decorators import login_required, role_required, check_project_access, get_project_or_404, require_page_access
 from app.utils.errors import ApiError
 
 projects_bp = Blueprint("projects", __name__)
@@ -12,6 +12,7 @@ projects_bp = Blueprint("projects", __name__)
 @login_required
 def list_projects():
     user = g.current_user
+    require_page_access(user, ResourcePage.PROJECTS, write=False)
     if user.role == UserRole.ADMIN:
         projects = Project.query.order_by(Project.created_at.desc()).all()
     elif user.role == UserRole.PM:
@@ -24,8 +25,9 @@ def list_projects():
 
 
 @projects_bp.post("")
-@role_required(UserRole.ADMIN, UserRole.PM)
+@login_required
 def create_project():
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=True)
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
     if not name:
@@ -47,6 +49,7 @@ def create_project():
 @login_required
 def get_project(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=False)
     check_project_access(project, g.current_user)
     return jsonify(project.to_dict(include_counts=True))
 
@@ -55,6 +58,7 @@ def get_project(project_id):
 @login_required
 def update_project(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=True)
     check_project_access(project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -74,9 +78,11 @@ def update_project(project_id):
 
 
 @projects_bp.delete("/<int:project_id>")
-@role_required(UserRole.ADMIN)
+@login_required
 def delete_project(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=True)
+    check_project_access(project, g.current_user, write=True)
     db.session.delete(project)
     db.session.commit()
     return jsonify({"success": True})
@@ -86,6 +92,7 @@ def delete_project(project_id):
 @login_required
 def add_member(project_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=True)
     check_project_access(project, g.current_user, write=True)
 
     data = request.get_json(silent=True) or {}
@@ -102,6 +109,7 @@ def add_member(project_id):
 @login_required
 def remove_member(project_id, user_id):
     project = get_project_or_404(project_id)
+    require_page_access(g.current_user, ResourcePage.PROJECTS, write=True)
     check_project_access(project, g.current_user, write=True)
 
     user = User.query.get(user_id)

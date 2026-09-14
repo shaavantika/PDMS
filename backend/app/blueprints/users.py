@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import User, UserRole
+from app.models import User, UserRole, UserGroup
 from app.auth.decorators import role_required
 from app.utils.errors import ApiError
 
@@ -91,6 +91,10 @@ def update_user(user_id):
         user.role = UserRole(data["role"])
     if "is_active" in data:
         user.is_active = bool(data["is_active"])
+    if "group_id" in data:
+        if data["group_id"] is not None and not UserGroup.query.get(data["group_id"]):
+            raise ApiError("Invalid group_id")
+        user.group_id = data["group_id"]
     if "password" in data and data["password"]:
         user.password_hash = generate_password_hash(data["password"])
 

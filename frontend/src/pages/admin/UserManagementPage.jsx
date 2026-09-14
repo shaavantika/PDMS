@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listUsers, createUser, updateUser, listPendingUsers, approveUser, rejectUser } from '../../api/users'
+import { listGroups } from '../../api/groups'
 import { DataTable } from '../../components/DataTable'
 import { Avatar } from '../../components/Avatar'
 import { Modal } from '../../components/Modal'
@@ -61,6 +62,7 @@ function PendingRegistrations() {
 export function UserManagementPage() {
   const queryClient = useQueryClient()
   const { data: users = [], isLoading } = useQuery({ queryKey: ['users'], queryFn: listUsers })
+  const { data: groups = [] } = useQuery({ queryKey: ['groups'], queryFn: listGroups })
 
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'member' })
@@ -86,6 +88,11 @@ export function UserManagementPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 
+  const groupMutation = useMutation({
+    mutationFn: ({ id, group_id }) => updateUser(id, { group_id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+
   const columns = [
     {
       key: 'name',
@@ -106,6 +113,25 @@ export function UserManagementPage() {
           {ROLES.map((r) => (
             <option key={r} value={r}>
               {r}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: 'group',
+      header: 'Group',
+      render: (u) => (
+        <select
+          className="input"
+          style={{ padding: '4px 8px', fontSize: 13, width: 150 }}
+          value={u.group_id ?? ''}
+          onChange={(e) => groupMutation.mutate({ id: u.id, group_id: e.target.value ? Number(e.target.value) : null })}
+        >
+          <option value="">— No group —</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
             </option>
           ))}
         </select>
