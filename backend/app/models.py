@@ -116,6 +116,8 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     is_approved = db.Column(db.Boolean, nullable=False, default=False)
     group_id = db.Column(db.Integer, db.ForeignKey("groups.id"), nullable=True)
+    reset_token_hash = db.Column(db.String(255), nullable=True)
+    reset_token_expires_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     projects_owned = db.relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")

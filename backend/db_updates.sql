@@ -39,3 +39,7 @@ FROM pdms.groups WHERE name = 'Default Access';
 
 UPDATE pdms.users SET group_id = (SELECT id FROM pdms.groups WHERE name = 'Default Access')
 WHERE role != 'ADMIN';
+
+-- 2026-09-14: forgot-password token fields
+ALTER TABLE pdms.users ADD COLUMN reset_token_hash VARCHAR(255);
+ALTER TABLE pdms.users ADD COLUMN reset_token_expires_at TIMESTAMP;
